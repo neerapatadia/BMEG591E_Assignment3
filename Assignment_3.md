@@ -105,14 +105,14 @@ assignment located in **/projects/bmeg/A2** in the course server.
 ``` bash
 #?# Use trimmomatic SE to crop the file down to 25 bp in length, type the command you use below - 1 pt
 ## Note: Remember to gzip all your files! Look into the trimmomatic documentation for how to specify to compress your output
-trimmomatic SE -phred33 /projects/bmeg/A2/H3K27me3_iPSC_SRA60_subset_1.fastq.gz /home/npatadia_bmeg22/assignment3_bmeg591e/output.fq.gz HEADCROP:25
+trimmomatic SE /projects/bmeg/A2/H3K27me3_iPSC_SRA60_subset_1.fastq.gz /home/npatadia_bmeg22/assignment3_bmeg591e/H3K27me3_iPSC_SRA60_subset_1_LEN_25_v2.fq.gz CROP:25
 
 #?# Use bowtie2 to map the _25bp_ read file you just created to the reference genome, type the command you use below: - 0.5 pt
-bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -1 /home/npatadia_bmeg22/assignment3_bmeg591e/output.fq.gz -S /home/npatadia_bmeg22/assignment3_bmeg591e/hg38_alignment_bowtie2.sam
+bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -U /home/npatadia_bmeg22/assignment3_bmeg591e/H3K27me3_iPSC_SRA60_subset_1_LEN_25.fq.gz -S /home/npatadia_bmeg22/assignment3_bmeg591e/H3K27me3_iPSC_SRA60_subset_1_LEN_25_aligned.sam
 
 
 #?# Use sambamba view to get the number of uniquely mapped reads of the alignment output you got above,type the command you use below: - 0.5 pt
-sambamba view -h -F "[XS] == null and not unmapped and not duplicate" hg38_alignment_bowtie2.bam -o hg38_alignment_bowtie2_sorted_filtered.bam
+sambamba view -h -S -F "[XS] == null and not unmapped and not duplicate" H3K27me3_iPSC_SRA60_subset_1_LEN_25_aligned.sam -o H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.sam
 
 ## NOTE: Remember to use the following flag:
 ## -F "[XS] == null and not unmapped and not duplicate"
@@ -135,10 +135,12 @@ mapped reads when reads of this length have been mapped to the genome.
 ### Create a mini pipeline that uses sambamba view to get the number of uniquely mapped reads for the files above, plus the 25bp length file you created for the previous question.
 #?# Type the code of your mini pipeline below: - 3 pt
 
-#!/bin/bash
+#!/bin/bash  
+103423944
 
 sample=$1
 file=$2
+readlen=$3
 logDir=/home/npatadia_bmeg22/assignment3_bmeg591e/unq_map_reads
 mkdir -p $logDir # make the directory where log files will go, if it doesn't exist already
 
@@ -164,11 +166,11 @@ fi
 ./runTheseJobsSerially.sh ./getUniqueMappingReads.sh tasks.sh
 
 #?# Type the content of your taskfile below: - 0.5 pt 
-H3K27Me3_150    H3K27me3_iPSC_SRA60_subset_1_LEN_150_mapped.bam
-H3K27Me3_100    H3K27me3_iPSC_SRA60_subset_1_LEN_100_mapped.bam
-H3K27Me3_75 H3K27me3_iPSC_SRA60_subset_1_LEN_75_mapped.bam
-H3K27Me3_50 H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam
-H3K27Me3_25 H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.bam
+H3K27Me3_150    H3K27me3_iPSC_SRA60_subset_1_LEN_150_mapped.bam 150
+H3K27Me3_100    H3K27me3_iPSC_SRA60_subset_1_LEN_100_mapped.bam 100
+H3K27Me3_75 H3K27me3_iPSC_SRA60_subset_1_LEN_75_mapped.bam 75
+H3K27Me3_50 H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam 50
+H3K27Me3_25 H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.bam 25
 ```
 
 Now that you have the number of uniquely mapped reads for the different
@@ -190,7 +192,7 @@ library(ggplot2)
 
 
 length_mapped_reads.df <- data.frame(reads_length=c(150,100,75,50,25),
-                          uniquely_mapped_reads=c(1571825,1504718,1459162,1401280,1350000))## Here
+                          uniquely_mapped_reads=c(1571825,1504718,1459162,1401280, 1325968))## Here
 ## If you don't have it already, install the "ggplot2" package on your Rstudio 
 ## Go to packages on the bottom left part of the screen --> install --> type: ggplot2
 ## Accept to install the required dependencies :) 
@@ -225,18 +227,25 @@ between a paired-end run versus a single-end run.
 ## /projects/bmeg/indexes/hg38/hg38_bowtie2_index
 
 #?# Perform a paired-end (PE) analysis, type the command you used below: - 0.5 pt
-
+bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -1 /projects/bmeg/A3/H3K27me3_iPSC_SRA60_subset_1_LEN_25.fastq.gz -2 /projects/bmeg/A3/H3K27me3_iPSC_SRA60_subset_2_LEN_25.fastq.gz -S /home/npatadia_bmeg22/assignment3_bmeg591e/partb/paired_end_bowtie_alignment.sam
 
 #?# Do a single-end (SE) analysis of the subset_1 file , type the command you used below: - 0.5 pt
+bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -U /projects/bmeg/A3/H3K27me3_iPSC_SRA60_subset_1_LEN_25.fastq.gz -S /home/npatadia_bmeg22/assignment3_bmeg591e/partb/single_end_bowtie_alignment.sam
 
 #?# Convert the PE sam file to bam format, type the command you used below: - 0.5 pt
+samtools view -S -b -h paired_end_bowtie_alignment.sam > paired_end_bowtie_alignment.bam
 
 #?# Convert the SE sam file to bam format, type the command you used below: - 0.5 pt
+samtools view -S -b -h single_end_bowtie_alignment.sam > single_end_bowtie_alignment.bam
 
 ## Before moving on: remove the PE and SE sam alignment files!
-#?# Use sambamba view to get the number of uniquely mapped reads for the PE alignment, type the command you used below: - 0.5 pt 
+#?# Use sambamba view to get the number of uniquely mapped reads for the PE alignment, type the command you used below: - 0.5 pt
+sambamba view -h -F "[XS] == null and not unmapped and not duplicate"  paired_end_bowtie_alignment.bam -o paired_end_uniq_mapping_reads.bam | wc -l
+#2686693
 
 #?# Use sambamba view to get the number of uniquely mapped reads for the SE alignment, type the command you used below: - 0.5 pt 
+sambamba view -h -F "[XS] == null and not unmapped and not duplicate"  single_end_bowtie_alignment.bam -o single_end_uniq_mapping_reads.bam | wc -l
+#1325968
 ```
 
 Your supervisor liked so much the graphical representation of your data,
@@ -246,14 +255,40 @@ comparison.**On your local computer:**
 ``` r
 ## First, we create a dataframe with two columns, one (run_type) for the different run types and another (uniquely_mapped_reads for the number of uniquely mapped reads.
 #?# Substitute the SE and PE with their respective number of uniquely mapped reads that you got from sambamba view: - 1 pt
-#sequence_run.df <- data.frame(run_type=c("Single End", "Paired End"),
-    #                          uniquely_mapped_reads=c(SE,PE))
+sequence_run.df <- data.frame(run_type=c("Single End", "Paired End"),
+                             uniquely_mapped_reads=c(1325968,2686693))
 #?# Using ggplot, create a barplot that shows the different number of uniquely mapped reads between the two run types: - 2 pt
+
+ggplot(data = sequence_run.df, mapping = aes(x = run_type, y = uniquely_mapped_reads)) + 
+  geom_bar(stat="identity")
+```
+
+![](Assignment_3_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+``` r
 ## Use the run_type in the x-axis
 ## Use the uniquely_mapped_reads in the y-axis
 #?# Does the run type makes a difference? If there is, is it large? - 1 pt
+
+#Yes, the run type does make a difference. There are approximately double the 
+#number of uniquely mapped reads for paired versus single end analysis, which I 
+#would say is large. The approximate doubling of number of uniquely mapped reads 
+# is actually a result of the fact that both ends of a given fragment are being 
+#sequenced, so you end up having two reads per fragments in the sequence.
+
+
 #?# In your own words explain the difference between SE and PE read alignment. - 1 pt
+
+
+
+
 #?# Given that the 50 bp reads (from last graph) contain the same number of bases as two 25 bp reads (25 bp PE; 25+25=50), why are the number of uniquely mapping reads different between these two? Which has more? Why do you think this is? - 3 pts
+
+#between the two, there would be more uniquely mapping reads for the paired end 
+#reads versus the single end reads. This is because when you're working with paired
+#end reads, in addition to doubling the number of reads that you see, you also 
+#are able get data on repetitive regions of genome, as well as data on other
+#genomic rearrangements. 
 ```
 
 ## Assignment submission
