@@ -1,5 +1,6 @@
 Assignment 3: Mappability
 ================
+Neera Patadia
 
 # Assignment Overview
 
@@ -69,6 +70,8 @@ need to run. For this assignment we only need to install:
 
 ``` bash
 #?# Add trimmomatic to your conda environment created on A1 - 0.5 pt
+
+conda install -c bioconda trimmomatic
 ```
 
 ## 1\. Sequencing parameters
@@ -102,8 +105,15 @@ assignment located in **/projects/bmeg/A2** in the course server.
 ``` bash
 #?# Use trimmomatic SE to crop the file down to 25 bp in length, type the command you use below - 1 pt
 ## Note: Remember to gzip all your files! Look into the trimmomatic documentation for how to specify to compress your output
+trimmomatic SE -phred33 /projects/bmeg/A2/H3K27me3_iPSC_SRA60_subset_1.fastq.gz /home/npatadia_bmeg22/assignment3_bmeg591e/output.fq.gz HEADCROP:25
+
 #?# Use bowtie2 to map the _25bp_ read file you just created to the reference genome, type the command you use below: - 0.5 pt
+bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -1 /home/npatadia_bmeg22/assignment3_bmeg591e/output.fq.gz -S /home/npatadia_bmeg22/assignment3_bmeg591e/hg38_alignment_bowtie2.sam
+
+
 #?# Use sambamba view to get the number of uniquely mapped reads of the alignment output you got above,type the command you use below: - 0.5 pt
+sambamba view -h -F "[XS] == null and not unmapped and not duplicate" hg38_alignment_bowtie2.bam -o hg38_alignment_bowtie2_sorted_filtered.bam
+
 ## NOTE: Remember to use the following flag:
 ## -F "[XS] == null and not unmapped and not duplicate"
 ## Tip: Check for the sambamba documentation for options that will allow you to use the sam file as an input and automatically count the number of reads.
@@ -124,6 +134,25 @@ mapped reads when reads of this length have been mapped to the genome.
 ## H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam
 ### Create a mini pipeline that uses sambamba view to get the number of uniquely mapped reads for the files above, plus the 25bp length file you created for the previous question.
 #?# Type the code of your mini pipeline below: - 3 pt
+
+#!/bin/bash
+
+sample=$1
+file=$2
+logDir=/home/npatadia_bmeg22/assignment3_bmeg591e/unq_map_reads
+mkdir -p $logDir # make the directory where log files will go, if it doesn't exist already
+
+echo getting unique mapping reads for $sample
+if [ ! -e $logDir/$sample.uniq.reads.done ]
+then
+    sambamba view -h -F "[XS] == null and not unmapped and not duplicate" /projects/bmeg/A3/$file -o $logDir/uniqmapreads_$sample.bam
+    touch $logDir/$sample.uniq.reads.done
+else
+    echo already got unique mapping reads for $sample
+fi
+
+
+
 ## You do not need to build in robustness to failure here since only one command is run with a single numerical output (so it would be hard to miss a failed run). 
 ## Have the pipeline also state the read length being considered before displaying the number of uniquely mapping reads.
 ## Copy the job scheduler simulator used for last assignment: *runTheseJobsSerially.sh* to the directory you are using to work on this assignment (working directory)
@@ -132,7 +161,14 @@ mapped reads when reads of this length have been mapped to the genome.
 ## <your_taskfile> with a taskfile that includes the tasks you want to perform 
 ./runTheseJobsSerially.sh <your_mini_pipeline> <your_taskfile>
 #?# Type the substituted line you used below: - 1.5 pt 
+./runTheseJobsSerially.sh ./getUniqueMappingReads.sh tasks.sh
+
 #?# Type the content of your taskfile below: - 0.5 pt 
+H3K27Me3_150    H3K27me3_iPSC_SRA60_subset_1_LEN_150_mapped.bam
+H3K27Me3_100    H3K27me3_iPSC_SRA60_subset_1_LEN_100_mapped.bam
+H3K27Me3_75 H3K27me3_iPSC_SRA60_subset_1_LEN_75_mapped.bam
+H3K27Me3_50 H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam
+H3K27Me3_25 H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.bam
 ```
 
 Now that you have the number of uniquely mapped reads for the different
@@ -143,14 +179,30 @@ computer**:
 
 ``` r
 # First, we create a dataframe with two columns, one (reads_length) for the different read lengths and another (uniquely_mapped_reads for the number of uniquely mapped reads
+library(ggplot2)
+```
+
+    ## Warning in register(): Can't find generic `scale_type` in package ggplot2 to
+    ## register S3 method.
+
+``` r
 #?# Substitute the sequence lengths with their respective number of uniquely mapped reads, that you got from sambamba view: - 1 pt
-#length_mapped_reads.df <- data.frame(reads_length=c(150,100,75,50,25),
-                         # uniquely_mapped_reads=c(X,X,X,X,X))## Here
+
+
+length_mapped_reads.df <- data.frame(reads_length=c(150,100,75,50,25),
+                          uniquely_mapped_reads=c(1571825,1504718,1459162,1401280,1350000))## Here
 ## If you don't have it already, install the "ggplot2" package on your Rstudio 
 ## Go to packages on the bottom left part of the screen --> install --> type: ggplot2
 ## Accept to install the required dependencies :) 
                     
 #?# Create a scatterplot using ggplot2 - 2 pt
+ggplot(data = length_mapped_reads.df) + 
+  geom_point(mapping = aes(x = reads_length, y = uniquely_mapped_reads))
+```
+
+![](Assignment_3_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
 ## Use the reads_length for the x axis, uniquely_mapped_reads for the y axis; 
 ## Use the number of uniqquely mapped reads for the y axis
 ## Tips:
@@ -158,9 +210,6 @@ computer**:
 ## To search for help on a function, use the ? command. For instance: 
 ?geom_point
 ```
-
-    ## No documentation for 'geom_point' in specified packages and libraries:
-    ## you could try '??geom_point'
 
 ### b. Paired-end vs Single-end reads
 
@@ -174,12 +223,19 @@ between a paired-end run versus a single-end run.
 # /projects/bmeg/A3/H3K27me3_iPSC_SRA60_subset_2_LEN_25.fastq.gz
 ## And the index of the hg38 genome build: 
 ## /projects/bmeg/indexes/hg38/hg38_bowtie2_index
+
 #?# Perform a paired-end (PE) analysis, type the command you used below: - 0.5 pt
+
+
 #?# Do a single-end (SE) analysis of the subset_1 file , type the command you used below: - 0.5 pt
+
 #?# Convert the PE sam file to bam format, type the command you used below: - 0.5 pt
+
 #?# Convert the SE sam file to bam format, type the command you used below: - 0.5 pt
+
 ## Before moving on: remove the PE and SE sam alignment files!
 #?# Use sambamba view to get the number of uniquely mapped reads for the PE alignment, type the command you used below: - 0.5 pt 
+
 #?# Use sambamba view to get the number of uniquely mapped reads for the SE alignment, type the command you used below: - 0.5 pt 
 ```
 
