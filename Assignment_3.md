@@ -139,13 +139,20 @@ mapped reads when reads of this length have been mapped to the genome.
 sample=$1
 file=$2
 readlen=$3
+inPath=$4
+type=$5
 logDir=/home/npatadia_bmeg22/assignment3_bmeg591e/unq_map_reads
 mkdir -p $logDir # make the directory where log files will go, if it doesn't exist already
-
 echo getting unique mapping reads for $sample with length $readlen
-if [ ! -e $logDir/uniqmapreads_$sample.bam ]
+
+
+if [ type==bam ] 
 then
-    sambamba view -h -c -S -F "[XS] == null and not unmapped and not duplicate" /projects/bmeg/A3/$file -o $logDir/uniqmapreads_$sample.bam
+    sambamba view -h -c -F "[XS] == null and not unmapped and not duplicate" $inPath/$file -o $logDir/uniqmapreads_$sample.bam
+
+elif [ type==sam ]
+then
+    sambamba view -h -c -S -F "[XS] == null and not unmapped and not duplicate" $inPath/$file -o $logDir/uniqmapreads_$sample.sam
 
 else
     echo already got unique mapping reads for $sample
@@ -164,11 +171,11 @@ fi
 ./runTheseJobsSerially.sh ./getUniqueMappingReads.sh tasks.sh
 
 #?# Type the content of your taskfile below: - 0.5 pt 
-H3K27Me3_150    H3K27me3_iPSC_SRA60_subset_1_LEN_150_mapped.bam 150
-H3K27Me3_100    H3K27me3_iPSC_SRA60_subset_1_LEN_100_mapped.bam 100
-H3K27Me3_75 H3K27me3_iPSC_SRA60_subset_1_LEN_75_mapped.bam 75
-H3K27Me3_50 H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam 50
-H3K27Me3_25 H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.bam 25
+H3K27Me3_150    H3K27me3_iPSC_SRA60_subset_1_LEN_150_mapped.bam 150 /projects/bmeg/A3 bam
+H3K27Me3_100    H3K27me3_iPSC_SRA60_subset_1_LEN_100_mapped.bam 100 /projects/bmeg/A3 bam
+H3K27Me3_75 H3K27me3_iPSC_SRA60_subset_1_LEN_75_mapped.bam 75 /projects/bmeg/A3 bam
+H3K27Me3_50 H3K27me3_iPSC_SRA60_subset_1_LEN_50_mapped.bam 50 /projects/bmeg/A3 bam
+H3K27Me3_25 H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.sam 25 /home/npatadia_bmeg22/assignment3_bmeg591e sam
 ```
 
 Now that you have the number of uniquely mapped reads for the different
@@ -307,8 +314,4 @@ with the authors and their contributions to the assignment. If you
 worked alone, only the author (e.g. your name and student ID) should be
 included.
 
-Authors: Name1 (studentID1) and Name2 (studentID2)
-
-Contributions: (example) N1 and N2 worked together on the same computer
-to complete the assignment. N1 typed for the first half and N2 typed for
-the second half.
+Authors: Neera Patadia (79557773)
