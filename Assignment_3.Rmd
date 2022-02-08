@@ -66,7 +66,7 @@ bowtie2 -x /projects/bmeg/indexes/hg38/hg38_bowtie2_index -U /home/npatadia_bmeg
 
 
 #?# Use sambamba view to get the number of uniquely mapped reads of the alignment output you got above,type the command you use below: - 0.5 pt
-sambamba view -h -S -F "[XS] == null and not unmapped and not duplicate" H3K27me3_iPSC_SRA60_subset_1_LEN_25_aligned.sam -o H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.sam
+sambamba view -h -c -S -F "[XS] == null and not unmapped and not duplicate" H3K27me3_iPSC_SRA60_subset_1_LEN_25_aligned.sam -o H3K27me3_iPSC_SRA60_subset_1_LEN_25_mapped.sam
 
 ## NOTE: Remember to use the following flag:
 ## -F "[XS] == null and not unmapped and not duplicate"
@@ -85,19 +85,17 @@ You realize that if you want to consider many different read lengths, copying an
 #?# Type the code of your mini pipeline below: - 3 pt
 
 #!/bin/bash  
-103423944
-
 sample=$1
 file=$2
 readlen=$3
 logDir=/home/npatadia_bmeg22/assignment3_bmeg591e/unq_map_reads
 mkdir -p $logDir # make the directory where log files will go, if it doesn't exist already
 
-echo getting unique mapping reads for $sample
-if [ ! -e $logDir/$sample.uniq.reads.done ]
+echo getting unique mapping reads for $sample with length $readlen
+if [ ! -e $logDir/uniqmapreads_$sample.bam ]
 then
-	sambamba view -h -F "[XS] == null and not unmapped and not duplicate" /projects/bmeg/A3/$file -o $logDir/uniqmapreads_$sample.bam
-	touch $logDir/$sample.uniq.reads.done
+	sambamba view -h -c -S -F "[XS] == null and not unmapped and not duplicate" /projects/bmeg/A3/$file -o $logDir/uniqmapreads_$sample.bam
+
 else
 	echo already got unique mapping reads for $sample
 fi
@@ -131,7 +129,7 @@ library(ggplot2)
 
 
 length_mapped_reads.df <- data.frame(reads_length=c(150,100,75,50,25),
-                          uniquely_mapped_reads=c(1571825,1504718,1459162,1401280, 1325968))## Here
+                          uniquely_mapped_reads=c(1571825,1504718,1459162,1401280,1325510))## Here
 ## If you don't have it already, install the "ggplot2" package on your Rstudio 
 ## Go to packages on the bottom left part of the screen --> install --> type: ggplot2
 ## Accept to install the required dependencies :) 
@@ -176,12 +174,12 @@ samtools view -S -b -h single_end_bowtie_alignment.sam > single_end_bowtie_align
 
 ## Before moving on: remove the PE and SE sam alignment files!
 #?# Use sambamba view to get the number of uniquely mapped reads for the PE alignment, type the command you used below: - 0.5 pt
-sambamba view -h -F "[XS] == null and not unmapped and not duplicate"  paired_end_bowtie_alignment.bam -o paired_end_uniq_mapping_reads.bam | wc -l
-#2686693
+sambamba view -h -c -F "[XS] == null and not unmapped and not duplicate"  paired_end_bowtie_alignment.bam -o paired_end_uniq_mapping_reads.bam
+#output 2686235
 
 #?# Use sambamba view to get the number of uniquely mapped reads for the SE alignment, type the command you used below: - 0.5 pt 
-sambamba view -h -F "[XS] == null and not unmapped and not duplicate"  single_end_bowtie_alignment.bam -o single_end_uniq_mapping_reads.bam | wc -l
-#1325968
+sambamba view -h -c -F "[XS] == null and not unmapped and not duplicate"  single_end_bowtie_alignment.bam -o single_end_uniq_mapping_reads.bam
+# output 1325510
 ```
 
 Your supervisor liked so much the graphical representation of your data, that he asks you to do a barplot for the SE versus PE alignment comparison.**On your local computer:**
@@ -190,7 +188,7 @@ Your supervisor liked so much the graphical representation of your data, that he
 ## First, we create a dataframe with two columns, one (run_type) for the different run types and another (uniquely_mapped_reads for the number of uniquely mapped reads.
 #?# Substitute the SE and PE with their respective number of uniquely mapped reads that you got from sambamba view: - 1 pt
 sequence_run.df <- data.frame(run_type=c("Single End", "Paired End"),
-                             uniquely_mapped_reads=c(1325968,2686693))
+                             uniquely_mapped_reads=c(1325510,2686235))
 #?# Using ggplot, create a barplot that shows the different number of uniquely mapped reads between the two run types: - 2 pt
 
 ggplot(data = sequence_run.df, mapping = aes(x = run_type, y = uniquely_mapped_reads)) + 
@@ -209,16 +207,22 @@ ggplot(data = sequence_run.df, mapping = aes(x = run_type, y = uniquely_mapped_r
 
 #?# In your own words explain the difference between SE and PE read alignment. - 1 pt
 
-
+# Paired end reads refer to the fact that a given DNA molecule is sequenced twice, 
+# once in the 5' -> 3' direction and once in the 3' -> 5' direction. When it comes
+# to alignment, both of the transcripts are aligned to the reference genome, and 
+# then are combine together using some algorithmic approach outline by the alignment
+# tool of choice. On the other hand, single end reads refer to a DNA fragment being
+# mapped in only one direction, as opposed to both directions. In the SE alignment,
+# there is no step to combine fragments after aligning to the reference as you are
+# only working with a single fragment.
 
 
 #?# Given that the 50 bp reads (from last graph) contain the same number of bases as two 25 bp reads (25 bp PE; 25+25=50), why are the number of uniquely mapping reads different between these two? Which has more? Why do you think this is? - 3 pts
 
-#between the two, there would be more uniquely mapping reads for the paired end 
-#reads versus the single end reads. This is because when you're working with paired
-#end reads, in addition to doubling the number of reads that you see, you also 
-#are able get data on repetitive regions of genome, as well as data on other
-#genomic rearrangements. 
+#Between the two, the 25bp paired end reads has more uniquely mapping reads in
+#comparison to the 50bp single end reads. This is because paired end read alignments 
+#also allow for mapping to more regions in the reference, such as repetitive regions
+#which are typically missed when only performing a single end read alignement.
 
 
 ```
